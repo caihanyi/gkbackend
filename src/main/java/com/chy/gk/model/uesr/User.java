@@ -2,24 +2,27 @@ package com.chy.gk.model.uesr;
 
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.Set;
 
 @Entity
-public class User {
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"user_name", "phone_num"}))
+public class User implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     //用户编号
     private long id;
     //用户名
-    @Column(name = "user_name", nullable = false)
+    @Column(name = "user_name", nullable = false, length = 40)
     private String userName;
     //密码
-    @Column(name = "password", nullable = false)
+    @Column(name = "password", nullable = false, length = 40)
     private String password;
     //手机号码
-    @Column( name = "phone_num",nullable = false)
+    @Column(name = "phone_num",nullable = false, length = 11)
     private String phoneNum;
     //密码盐
+    @Column(length = 40)
     private String salt;
     //角色列表
     @ManyToMany(cascade={CascadeType.PERSIST,CascadeType.MERGE})

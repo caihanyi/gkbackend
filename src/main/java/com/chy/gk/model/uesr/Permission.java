@@ -1,15 +1,17 @@
 package com.chy.gk.model.uesr;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.Set;
 
 @Entity
-public class Permission {
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"permission_name"}))
+public class Permission implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
     //权限名字
-    @Column(name = "permission_name")
+    @Column(name = "permission_name",  length = 40)
     private String permissionName;
     @ManyToMany(mappedBy = "permissionSet")
     private Set<Role> roleSet;

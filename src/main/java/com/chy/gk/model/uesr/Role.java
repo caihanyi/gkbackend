@@ -1,15 +1,17 @@
 package com.chy.gk.model.uesr;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.Set;
 
 @Entity
-public class Role {
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"role_name"}))
+public class Role implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     //角色名称
-    @Column( name = "role_name", nullable = false)
+    @Column( name = "role_name", nullable = false, length = 20)
     private String roleName;
     @ManyToMany(mappedBy = "roleSet")
     private Set<User> userSet;
