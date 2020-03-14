@@ -8,6 +8,7 @@ import java.util.Set;
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"user_name", "phone_num"}))
 public class User implements Serializable {
+    private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     //用户编号

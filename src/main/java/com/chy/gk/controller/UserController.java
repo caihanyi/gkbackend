@@ -3,8 +3,12 @@ package com.chy.gk.controller;
 import com.chy.gk.model.uesr.User;
 import com.chy.gk.service.UserService;
 import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authc.AuthenticationException;
+import org.apache.shiro.authc.IncorrectCredentialsException;
+import org.apache.shiro.authc.LockedAccountException;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.crypto.hash.SimpleHash;
+import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ByteSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.alibaba.druid.util.Utils.md5;
 
@@ -39,27 +46,31 @@ public class  UserController {
     }
 
     @PostMapping("/login")
-    public String login(@RequestBody User user){
+    public Map<String, Object> login(@RequestBody User user){
+        Map<String, Object> map = new HashMap<String, Object>();
         Subject subject = SecurityUtils.getSubject();
         UsernamePasswordToken token = new UsernamePasswordToken(user.getUserName(), user.getPassword());
 
         try {
             subject.login(token);
-        }catch (Exception e){
-            return "登录失败！";
+            Session session = subject.getSession();
+            map.put("code", "200");
+            map.put("mag", "登录成功！");
+            map.put("session", session.getId());
+            return map;
+        } catch (IncorrectCredentialsException e) {
+            map.put("code","401");
+            map.put("msg","密码错误！");
+            return map;
+        } catch (LockedAccountException e) {
+            map.put("code","401");
+            map.put("msg","该用户已被禁用！");
+            return map;
+        } catch (AuthenticationException e) {
+            map.put("code","401");
+            map.put("msg","v！");
+            return map;
         }
-//        if(null != userService.getUserByName(user.getUserName())){
-//            return "该用户名已注册！";
-//        } else {
-//            user.setSalt(user.getUserName());
-//            user.setPassword(md5(md5(user.getPassword()+user.getSalt())));
-//            if (null != userService.addUser(user)){
-//                return "注册成功！";
-//            } else {
-//                return "注册失败！";
-//            }
-//        }
-        return "denglu";
     }
 
     public UserService getUserService() {

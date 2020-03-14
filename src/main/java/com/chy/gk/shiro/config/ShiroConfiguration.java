@@ -3,6 +3,8 @@ package com.chy.gk.shiro.config;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.chy.gk.shiro.CORSAuthenticationFilter;
+import com.chy.gk.shiro.MySessionManager;
 import com.chy.gk.shiro.MyShiroRealm;
 import org.apache.shiro.authc.credential.HashedCredentialsMatcher;
 import org.apache.shiro.mgt.SecurityManager;
@@ -15,6 +17,8 @@ import org.crazycake.shiro.RedisManager;
 import org.crazycake.shiro.RedisSessionDAO;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import javax.servlet.Filter;
 
 /**
  * Shiro 配置
@@ -58,19 +62,25 @@ public class ShiroConfiguration {
         //<!-- 过滤链定义，从上向下顺序执行，一般将 /**放在最为下边 -->:这是一个坑呢，一不小心代码就不好使了;
         //<!-- authc:所有url都必须认证通过才可以访问; anon:所有url都都可以匿名访问-->
         filterChainDefinitionMap.put("/sign", "anon");
-//        filterChainDefinitionMap.put("/login", "anon");
+        filterChainDefinitionMap.put("/login", "anon");
+        filterChainDefinitionMap.put("/hello", "anon");
         filterChainDefinitionMap.put("/**", "authc");
 
         // 如果不设置默认会自动寻找Web工程根目录下的"/login.jsp"页面
-        // 配器shirot认登录累面地址，前后端分离中登录累面跳转应由前端路由控制，后台仅返回json数据, 对应LoginController中unauth请求
-        shiroFilterFactoryBean.setLoginUrl("/login");
-
-        // 登录成功后要跳转的链接
+        // 配器shirot认登录页面地址，前后端分离中登录累面跳转应由前端路由控制，后台仅返回json数据
+//        shiroFilterFactoryBean.setLoginUrl("/login");
 //        shiroFilterFactoryBean.setSuccessUrl("/home");
-        //未授权界面;
 //        shiroFilterFactoryBean.setUnauthorizedUrl("/403");
 
         shiroFilterFactoryBean.setFilterChainDefinitionMap(filterChainDefinitionMap);
+        //自定义过滤器
+        Map<String, Filter> filterMap = new LinkedHashMap<String, Filter>();
+        //authc指向FormAuthenticationFilter，corsAuthenticationFilter继承FormAuthenticationFilter,这里将authc替换
+        //也可以自定义过滤名
+        //filterMap.put("myfilter", corsAuthenticationFilter());
+        //filterChainDefinitionMap.put("/hello", "myfilter");
+        filterMap.put("authc", corsAuthenticationFilter());
+        shiroFilterFactoryBean.setFilters(filterMap);
         return shiroFilterFactoryBean;
     }
 
@@ -94,7 +104,6 @@ public class ShiroConfiguration {
         HashedCredentialsMatcher hashedCredentialsMatcher = new HashedCredentialsMatcher();
         hashedCredentialsMatcher.setHashAlgorithmName("md5");//散列算法:这里使用MD5算法;
         hashedCredentialsMatcher.setHashIterations(2);//散列的次数，比如散列两次，相当于 md5(md5(""));
-
         return hashedCredentialsMatcher;
     }
 
@@ -153,7 +162,7 @@ public class ShiroConfiguration {
      */
     @Bean
     public DefaultWebSessionManager sessionManager() {
-        DefaultWebSessionManager sessionManager = new DefaultWebSessionManager();
+        DefaultWebSessionManager sessionManager = new MySessionManager();
         sessionManager.setSessionDAO(redisSessionDAO());
         return sessionManager;
     }
@@ -169,6 +178,11 @@ public class ShiroConfiguration {
         AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor = new AuthorizationAttributeSourceAdvisor();
         authorizationAttributeSourceAdvisor.setSecurityManager(securityManager);
         return authorizationAttributeSourceAdvisor;
+    }
+
+
+    public CORSAuthenticationFilter corsAuthenticationFilter(){
+        return new CORSAuthenticationFilter();
     }
 
 

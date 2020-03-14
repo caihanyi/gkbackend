@@ -7,6 +7,7 @@ import java.util.Set;
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"permission_name"}))
 public class Permission implements Serializable {
+    private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
