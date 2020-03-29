@@ -63,6 +63,8 @@ public class ShiroConfiguration {
         //<!-- authc:所有url都必须认证通过才可以访问; anon:所有url都都可以匿名访问-->
         filterChainDefinitionMap.put("/sign", "anon");
         filterChainDefinitionMap.put("/login", "anon");
+        filterChainDefinitionMap.put("/getVerificationCode", "anon");//获取验证码
+        filterChainDefinitionMap.put("/loginByPhoneNum", "anon");//手机号码登录
         filterChainDefinitionMap.put("/hello", "anon");
         filterChainDefinitionMap.put("/**", "authc");
 
@@ -144,6 +146,7 @@ public class ShiroConfiguration {
         RedisCacheManager redisCacheManager = new RedisCacheManager();
         redisCacheManager.setRedisManager(redisManager());
         return redisCacheManager;
+
     }
 
     /**

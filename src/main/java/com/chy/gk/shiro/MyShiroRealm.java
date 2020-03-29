@@ -4,6 +4,8 @@ import com.chy.gk.model.uesr.Permission;
 import com.chy.gk.model.uesr.Role;
 import com.chy.gk.model.uesr.User;
 import com.chy.gk.service.UserService;
+import com.chy.gk.service.VerificationCodeService;
+import com.chy.gk.util.PhoneNumCheckUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationInfo;
@@ -20,6 +22,7 @@ import org.apache.shiro.subject.support.DefaultSubjectContext;
 import org.apache.shiro.util.ByteSource;
 import org.crazycake.shiro.RedisSessionDAO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -27,8 +30,14 @@ import java.util.Collection;
 import java.util.List;
 
 public class MyShiroRealm extends AuthorizingRealm {
+
     @Resource
+    @Lazy
     private UserService userService;
+
+    @Resource
+    @Lazy
+    private VerificationCodeService verificationCodeService;
 
 
     @Autowired(required = true)
@@ -54,21 +63,42 @@ public class MyShiroRealm extends AuthorizingRealm {
             throws AuthenticationException {
         System.out.println("MyShiroRealm.doGetAuthenticationInfo()");
 //        //获取用户的输入的账号.
-        String username = (String) token.getPrincipal();
-        System.out.println(token.getCredentials());
+        String principal = (String) token.getPrincipal();
+        User user = null;
+        SimpleAuthenticationInfo authenticationInfo = null;
+        //传进来的token是手机号,就用验证码替代密码进行校验
+        if(PhoneNumCheckUtil.checkPhoneNum(principal)){
+            user = userService.getUserByPhoneNum(principal);
+            if(user == null){
+                return null;
+            }
+            //从缓存里取出验证码
+            String code = verificationCodeService.getVerificationCode(principal);
+            if(null == code){
+                return null;
+            }
+            authenticationInfo = new SimpleAuthenticationInfo(
+                    user, //user对象
+                    code, //已加密验证码
+                    ByteSource.Util.bytes(user.getSalt()),//salt
+                    getName()  //realm name
+            );
+        } else {
+            user = userService.getUserByName(principal);
+            if(user == null){
+                return null;
+            }
+            authenticationInfo = new SimpleAuthenticationInfo(
+                    user, //user对象，存在redis session里，可自己定义存储内容，如用户名等
+                    user.getPassword(), //数据库密码
+                    ByteSource.Util.bytes(user.getSalt()),//salt
+                    getName()  //realm name
+            );
+        }
         //通过username从数据库中查找 User对象，如果找到，没找到.
         //实际项目中，这里可以根据实际情况做缓存，如果不做，Shiro自己也是有时间间隔机制，2分钟内不会重复执行该方法
-        User user = userService.getUserByName(username);
-//        System.out.println("----->>userInfo="+user.getUserName());
-        if(user == null){
-            return null;
-        }
-        SimpleAuthenticationInfo authenticationInfo = new SimpleAuthenticationInfo(
-                user, //user对象
-                user.getPassword(), //数据库密码
-                ByteSource.Util.bytes(user.getSalt()),//salt
-                getName()  //realm name
-        );
+
+
         return authenticationInfo;
     }
 
@@ -116,6 +146,22 @@ public class MyShiroRealm extends AuthorizingRealm {
 
     public void setRedisSessionDAO(RedisSessionDAO redisSessionDAO) {
         this.redisSessionDAO = redisSessionDAO;
+    }
+
+    public UserService getUserService() {
+        return userService;
+    }
+
+    public void setUserService(UserService userService) {
+        this.userService = userService;
+    }
+
+    public VerificationCodeService getVerificationCodeService() {
+        return verificationCodeService;
+    }
+
+    public void setVerificationCodeService(VerificationCodeService verificationCodeService) {
+        this.verificationCodeService = verificationCodeService;
     }
 }
 
