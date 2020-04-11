@@ -80,7 +80,7 @@ public class MyShiroRealm extends AuthorizingRealm {
             authenticationInfo = new SimpleAuthenticationInfo(
                     user, //user对象
                     code, //已加密验证码
-                    ByteSource.Util.bytes(user.getSalt()),//salt
+                    ByteSource.Util.bytes(PhoneNumCheckUtil.CODEKEY),//salt
                     getName()  //realm name
             );
         } else {

@@ -2,6 +2,8 @@ package com.chy.gk.controller;
 
 import com.chy.gk.model.uesr.User;
 import com.chy.gk.service.UserService;
+import com.chy.gk.service.VerificationCodeService;
+import com.chy.gk.util.PhoneNumCheckUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.IncorrectCredentialsException;
@@ -12,12 +14,14 @@ import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ByteSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static com.alibaba.druid.util.Utils.md5;
 
 @RestController
 public class  UserController {
@@ -25,15 +29,28 @@ public class  UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private VerificationCodeService verificationCodeService;
+
+
+
     @PostMapping("/sign")
-    public String signUser(@RequestBody User user){
-        if(null != userService.getUserByName(user.getUserName())){
+    public String signUser(@RequestBody Map<String, String> signInfo){
+        String code = verificationCodeService.getVerificationCode(signInfo.get("phoneNum"));
+        if(StringUtils.isEmpty(code) ||
+                !code.equals(new SimpleHash("md5", signInfo.get("verificationCode"),  ByteSource.Util.bytes(PhoneNumCheckUtil.CODEKEY), 2).toHex())){
+            return "验证码错误";
+        }
+        User user = new User();
+        if(null != userService.getUserByName(signInfo.get("userName"))){
             return "该用户名已注册！";
         } else {
 //            new SimpleHash(algorithmName, user.getPassword(),  ByteSource.Util.bytes(user.getUsername()), hashIterations).toHex();
-            user.setSalt(user.getUserName());
+            user.setUserName(signInfo.get("userName"));
+            user.setSalt(signInfo.get("userName"));
+            user.setPhoneNum(signInfo.get("phoneNum"));
             String password = "";
-            user.setPassword(new SimpleHash("md5", user.getPassword(),  ByteSource.Util.bytes(user.getUserName()), 2).toHex());
+            user.setPassword(new SimpleHash("md5", signInfo.get("password"),  ByteSource.Util.bytes(user.getSalt()), 2).toHex());
             if (null != userService.addUser(user)){
                 return "注册成功！";
             } else {
@@ -88,5 +105,13 @@ public class  UserController {
 
     public void setUserService(UserService userService) {
         this.userService = userService;
+    }
+
+    public VerificationCodeService getVerificationCodeService() {
+        return verificationCodeService;
+    }
+
+    public void setVerificationCodeService(VerificationCodeService verificationCodeService) {
+        this.verificationCodeService = verificationCodeService;
     }
 }
